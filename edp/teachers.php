@@ -149,8 +149,6 @@ $teachers = $selected_department ? $teacher->getActiveByDepartment($selected_dep
                                     <th>#</th>
                                     <th>Name</th>
                                     <th>Department</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -164,8 +162,6 @@ $teachers = $selected_department ? $teacher->getActiveByDepartment($selected_dep
                                     <td><?php echo $counter++; ?></td>
                                     <td><?php echo htmlspecialchars($row['name']); ?></td>
                                     <td><?php echo htmlspecialchars($row['department']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['email']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['phone']); ?></td>
                                     <td>
                                         <span class="badge bg-<?php echo $row['status'] == 'active' ? 'success' : 'secondary'; ?>">
                                             <?php echo ucfirst($row['status']); ?>

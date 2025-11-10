@@ -17,6 +17,15 @@ $db = $database->getConnection();
 $teacher = new Teacher($db);
 $evaluation = new Evaluation($db);
 
+// Compute default academic year dynamically (e.g., 2025-2026 in late 2025)
+$currentYear = (int)date('Y');
+$currentMonth = (int)date('n');
+if ($currentMonth >= 7) {
+    $defaultAcademicYear = $currentYear . '-' . ($currentYear + 1);
+} else {
+    $defaultAcademicYear = ($currentYear - 1) . '-' . $currentYear;
+}
+
 // Presidents and Vice Presidents can evaluate across all departments
 if(in_array($_SESSION['role'], ['president', 'vice_president'])) {
     $teachers = $teacher->getAllTeachers('active');
@@ -50,7 +59,10 @@ if($_POST && isset($_POST['submit_evaluation'])) {
 
     if($result['success']) {
         $_SESSION['success'] = "Evaluation submitted successfully!";
-        header("Location: dashboard.php");
+        // Redirect to reports with the teacher filter and academic year so the new record is visible
+        $ay = urlencode($_POST['academic_year'] ?? '');
+        $tid = urlencode($_POST['teacher_id'] ?? '');
+        header("Location: ../evaluators/reports.php?teacher_id={$tid}&academic_year={$ay}");
         exit();
     } else {
         $_SESSION['error'] = "Error submitting evaluation: " . $result['message'];
@@ -143,7 +155,7 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Academic Year:</label>
-                                        <input type="text" class="form-control" id="academicYear" name="academic_year" value="2023-2024" required>
+                                        <input type="text" class="form-control" id="academicYear" name="academic_year" value="<?php echo htmlspecialchars($defaultAcademicYear); ?>" required>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Semester:</label>

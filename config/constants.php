@@ -18,4 +18,6 @@ define('DEPT_CTHM', 'CTHM');
 define('DEPT_ELEM', 'Elementary');
 define('DEPT_JHS', 'Junior High');
 define('DEPT_SHS', 'Senior High');
+// Application debug flag. Set to true to show detailed error messages (development only).
+define('APP_DEBUG', false);
 ?>

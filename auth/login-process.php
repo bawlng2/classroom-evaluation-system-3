@@ -30,7 +30,7 @@ if($user->login()) {
         $_SESSION['role'] = strtolower($user->role); // force lowercase for consistency
         $_SESSION['department'] = $user->department;
         $_SESSION['name'] = $user->name;
-        
+            
         // Log the login
         $log_query = "INSERT INTO audit_logs (user_id, action, description, ip_address) 
                      VALUES (:user_id, 'LOGIN', 'User logged into the system', :ip_address)";

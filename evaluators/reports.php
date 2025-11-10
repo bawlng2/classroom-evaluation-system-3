@@ -1,10 +1,10 @@
 <?php
 require_once '../auth/session-check.php';
-if(!in_array($_SESSION['role'], ['dean', 'principal', 'chairperson', 'subject_coordinator'])) {
+// Allow department evaluators and leaders (president/vice_president) to access reports
+if(!in_array($_SESSION['role'], ['dean', 'principal', 'chairperson', 'subject_coordinator', 'president', 'vice_president'])) {
     header("Location: ../login.php");
     exit();
 }
-
 require_once '../config/database.php';
 require_once '../models/Evaluation.php';
 require_once '../models/Teacher.php';
@@ -14,15 +14,30 @@ $db = $database->getConnection();
 
 $evaluation = new Evaluation($db);
 $teacher = new Teacher($db);
-
 // Get filter parameters
-$academic_year = $_GET['academic_year'] ?? '2023-2024';
+// Compute sensible default academic year (e.g., 2025-2026 when current date is in latter half of 2025)
+$currentYear = (int)date('Y');
+$currentMonth = (int)date('n');
+if ($currentMonth >= 7) {
+    $defaultAcademicYear = $currentYear . '-' . ($currentYear + 1);
+} else {
+    $defaultAcademicYear = ($currentYear - 1) . '-' . $currentYear;
+}
+$academic_year = $_GET['academic_year'] ?? $defaultAcademicYear;
 $semester = $_GET['semester'] ?? '';
 $teacher_id = $_GET['teacher_id'] ?? '';
 
 // Get evaluations for reporting
-$evaluations = $evaluation->getEvaluationsForReport($_SESSION['user_id'], $academic_year, $semester, $teacher_id);
-$teachers = $teacher->getByDepartment($_SESSION['department']);
+// Leaders (president/vice_president) should see all evaluations; other roles see their own
+$evaluatorFilter = in_array($_SESSION['role'], ['president', 'vice_president']) ? null : $_SESSION['user_id'];
+$evaluations = $evaluation->getEvaluationsForReport($evaluatorFilter, $academic_year, $semester, $teacher_id);
+$teachers = null;
+if (in_array($_SESSION['role'], ['president', 'vice_president'])) {
+    // Leaders can pick from all teachers
+    $teachers = $teacher->getAllTeachers('active');
+} else {
+    $teachers = $teacher->getByDepartment($_SESSION['department']);
+}
 
 // Calculate statistics
 $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year, $semester);
@@ -63,9 +78,17 @@ $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year
                         <div class="col-md-3">
                             <label for="academic_year" class="form-label">Academic Year</label>
                             <select class="form-select" id="academic_year" name="academic_year">
-                                <option value="2023-2024" <?php echo $academic_year == '2023-2024' ? 'selected' : ''; ?>>2023-2024</option>
-                                <option value="2022-2023" <?php echo $academic_year == '2022-2023' ? 'selected' : ''; ?>>2022-2023</option>
-                                <option value="2021-2022" <?php echo $academic_year == '2021-2022' ? 'selected' : ''; ?>>2021-2022</option>
+                                <?php
+                                // Show the default academic year and a few previous years
+                                $parts = explode('-', $defaultAcademicYear);
+                                $startYear = (int)$parts[0];
+                                for ($i = 0; $i < 6; $i++) {
+                                    $y = $startYear - $i;
+                                    $label = $y . '-' . ($y + 1);
+                                    $selected = ($academic_year == $label) ? 'selected' : '';
+                                    echo '<option value="' . $label . '" ' . $selected . '>' . $label . '</option>';
+                                }
+                                ?>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -99,7 +122,7 @@ $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year
 
 
 
-            <!-- Evaluations Table -->
+            <!-- Evaluations Table Restored -->
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Evaluation Details</h5>
@@ -112,12 +135,7 @@ $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year
                                     <th>Teacher</th>
                                     <th>Date</th>
                                     <th>Subject</th>
-                                    <th>Comm</th>
-                                    <th>Mgmt</th>
-                                    <th>Assess</th>
-                                    <th>Overall</th>
-                                    <th>Rating</th>
-                                    <th>AI Recs</th>
+                                    <!-- Removed: Comm, Mgmt, Assess, Overall columns -->
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -128,43 +146,9 @@ $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year
                                     <td><?php echo htmlspecialchars($eval['teacher_name']); ?></td>
                                     <td><?php echo date('M j, Y', strtotime($eval['observation_date'])); ?></td>
                                     <td><?php echo htmlspecialchars($eval['subject_observed']); ?></td>
+                                    <!-- Removed: Comm, Mgmt, Assess, Overall data cells -->
                                     <td>
-                                        <span class="badge bg-<?php echo $eval['communications_avg'] >= 4.0 ? 'success' : ($eval['communications_avg'] >= 3.0 ? 'warning' : 'danger'); ?>">
-                                            <?php echo number_format($eval['communications_avg'], 1); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-<?php echo $eval['management_avg'] >= 4.0 ? 'success' : ($eval['management_avg'] >= 3.0 ? 'warning' : 'danger'); ?>">
-                                            <?php echo number_format($eval['management_avg'], 1); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-<?php echo $eval['assessment_avg'] >= 4.0 ? 'success' : ($eval['assessment_avg'] >= 3.0 ? 'warning' : 'danger'); ?>">
-                                            <?php echo number_format($eval['assessment_avg'], 1); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-<?php echo $eval['overall_avg'] >= 4.6 ? 'success' : 
-                                                             ($eval['overall_avg'] >= 3.6 ? 'primary' : 
-                                                             ($eval['overall_avg'] >= 2.9 ? 'info' : 'warning')); ?>">
-                                            <?php echo number_format($eval['overall_avg'], 1); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $rating = 'Needs Improvement';
-                                        if($eval['overall_avg'] >= 4.6) $rating = 'Excellent';
-                                        elseif($eval['overall_avg'] >= 3.6) $rating = 'Very Satisfactory';
-                                        elseif($eval['overall_avg'] >= 2.9) $rating = 'Satisfactory';
-                                        elseif($eval['overall_avg'] >= 1.8) $rating = 'Below Satisfactory';
-                                        echo $rating;
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info"><?php echo $eval['ai_count']; ?></span>
-                                    </td>
-                                    <td>
-                                        <a href="evaluation-view.php?id=<?php echo $eval['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        <a href="evaluation-view.php?id=<?php echo $eval['id']; ?>" class="btn btn-sm btn-outline-primary me-1">
                                             <i class="fas fa-eye"></i> View
                                         </a>
                                     </td>
@@ -172,7 +156,7 @@ $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year
                                 <?php endwhile; ?>
                                 <?php else: ?>
                                 <tr>
-                                    <td colspan="10" class="text-center py-4">
+                                    <td colspan="4" class="text-center py-4">
                                         <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
                                         <h5>No Evaluation Data</h5>
                                         <p class="text-muted">No evaluations found for the selected filters.</p>
@@ -259,6 +243,15 @@ $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year
         function exportToExcel() {
             alert('Excel export functionality would be implemented here. This would download an Excel file of the report.');
             // In a real implementation, this would call a PHP script to generate Excel
+        }
+        
+        // Per-evaluation export helpers
+        function exportEvaluationPDF(evaluationId) {
+            window.open(`../controllers/export.php?type=pdf&evaluation_id=${evaluationId}&report_type=single`, '_blank');
+        }
+
+        function exportEvaluationCSV(evaluationId) {
+            window.open(`../controllers/export.php?type=csv&evaluation_id=${evaluationId}&report_type=single`, '_blank');
         }
     </script>
 </body>

@@ -20,6 +20,7 @@
             <li><a href="reports.php" class="nav-link"><i class="fas fa-chart-bar"></i> Reports</a></li>
         <?php elseif(in_array($_SESSION['role'], ['president', 'vice_president'])): ?>
             <li><a href="../leaders/dashboard.php" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="../evaluators/reports.php" class="nav-link"><i class="fas fa-chart-bar"></i> Reports</a></li>
         <?php else: ?>
             <li><a href="evaluation.php" class="nav-link"><i class="fas fa-clipboard-check"></i> Evaluation</a></li>
             <li><a href="teachers.php" class="nav-link"><i class="fas fa-chalkboard-teacher"></i> Teachers</a></li>

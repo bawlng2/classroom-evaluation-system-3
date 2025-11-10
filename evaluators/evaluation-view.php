@@ -1,6 +1,7 @@
 <?php
 require_once '../auth/session-check.php';
-if($_SESSION['role'] != 'admin') {
+// Allow department evaluators and leaders to view individual evaluations
+if(!in_array($_SESSION['role'], ['dean', 'principal', 'chairperson', 'subject_coordinator', 'president', 'vice_president', 'edp'])) {
     header("Location: ../login.php");
     exit();
 }

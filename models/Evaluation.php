@@ -17,40 +17,52 @@ class Evaluation {
     }
 
     // Get evaluations for reporting
-    public function getEvaluationsForReport($evaluator_id, $academic_year = '', $semester = '', $teacher_id = '') {
+    public function getEvaluationsForReport($evaluator_id = null, $academic_year = '', $semester = '', $teacher_id = '') {
+        // Build base query
         $query = "SELECT e.*, t.name as teacher_name, u.name as evaluator_name,
                          COUNT(ai.id) as ai_count
                   FROM " . $this->table_name . " e
                   JOIN teachers t ON e.teacher_id = t.id
                   JOIN users u ON e.evaluator_id = u.id
                   LEFT JOIN ai_recommendations ai ON e.id = ai.evaluation_id
-                  WHERE e.evaluator_id = :evaluator_id";
-        
-        $params = [':evaluator_id' => $evaluator_id];
-        
+                  ";
+
+        $where = [];
+        $params = [];
+
+        // If an evaluator_id is provided, filter by evaluator; otherwise return all evaluations (useful for leaders)
+        if (!empty($evaluator_id)) {
+            $where[] = 'e.evaluator_id = :evaluator_id';
+            $params[':evaluator_id'] = $evaluator_id;
+        }
+
         if (!empty($academic_year)) {
-            $query .= " AND e.academic_year = :academic_year";
+            $where[] = 'e.academic_year = :academic_year';
             $params[':academic_year'] = $academic_year;
         }
-        
+
         if (!empty($semester)) {
-            $query .= " AND e.semester = :semester";
+            $where[] = 'e.semester = :semester';
             $params[':semester'] = $semester;
         }
-        
+
         if (!empty($teacher_id)) {
-            $query .= " AND e.teacher_id = :teacher_id";
+            $where[] = 'e.teacher_id = :teacher_id';
             $params[':teacher_id'] = $teacher_id;
         }
-        
+
+        if (count($where) > 0) {
+            $query .= ' WHERE ' . implode(' AND ', $where);
+        }
+
         $query .= " GROUP BY e.id ORDER BY e.observation_date DESC";
-        
+
         $stmt = $this->conn->prepare($query);
-        
+
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
-        
+
         $stmt->execute();
         return $stmt;
     }
