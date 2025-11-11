@@ -38,7 +38,7 @@ $stats = $evaluation->getAdminStats($_SESSION['user_id']);
     <div class="main-content">
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3>Admin Dashboard - <?php echo $_SESSION['department']; ?></h3>
+                <h3> Dashboard - <?php echo $_SESSION['department']; ?></h3>
                 <span>Welcome, <?php echo $_SESSION['name']; ?></span>
             </div>
             

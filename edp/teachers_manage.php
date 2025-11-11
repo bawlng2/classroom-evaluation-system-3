@@ -1,18 +1,36 @@
 <?php
 require_once '../auth/session-check.php';
-if($_SESSION['role'] != 'edp') {
+if ($_SESSION['role'] != 'edp') {
     header("Location: ../login.php");
     exit();
 }
+
 require_once '../config/database.php';
 require_once '../models/Teacher.php';
+
 $database = new Database();
 $db = $database->getConnection();
 $teacher = new Teacher($db);
 $teachers = $teacher->getAllTeachers('active');
+
 // Handle deactivate action
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['teacher_id'], $_POST['action']) && $_POST['action'] === 'deactivate') {
     $teacher->updateStatus($_POST['teacher_id'], 'inactive');
+    header('Location: teachers_manage.php');
+    exit();
+}
+
+// Handle create teacher
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create') {
+    $name = trim($_POST['name']);
+    $department = trim($_POST['department']);
+
+    if (!empty($name) && !empty($department)) {
+        $teacher->create([
+            'name' => $name,
+            'department' => $department
+        ]);
+    }
     header('Location: teachers_manage.php');
     exit();
 }
@@ -27,9 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['teacher_id'], $_POST[
 </head>
 <body>
     <?php include '../includes/sidebar.php'; ?>
+
     <div class="main-content">
         <div class="container-fluid">
-            <h3>Manage Teachers (Edit/Deactivate)</h3>
+            <h3>Manage Teachers </h3>
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
@@ -48,42 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['teacher_id'], $_POST[
                                             </button>
                                         </span>
                                     </th>
-    <!-- Add Teacher Modal -->
-    <div class="modal fade" id="addTeacherModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Teacher</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="action" value="create">
-                        <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" name="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Department</label>
-                            <input type="text" class="form-control" name="department" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone</label>
-                            <input type="text" class="form-control" name="phone" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create Teacher</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
                                 </tr>
                             </thead>
                             <tbody>
@@ -115,6 +98,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['teacher_id'], $_POST[
             </div>
         </div>
     </div>
+
+    <!-- Add Teacher Modal -->
+    <div class="modal fade" id="addTeacherModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Teacher</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="create">
+
+                        <!-- Name -->
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+
+                        <!-- Department Dropdown -->
+                        <div class="mb-3">
+                            <label class="form-label">Department</label>
+                            <select class="form-select" name="department" required>
+                                <option value="" disabled selected>Select Department</option>
+                                <option value="CAS">CAS</option>
+                                <option value="CCIS">CCIS</option>
+                                <option value="CCJE">CCJE</option>
+                                <option value="CBM">CBM</option>
+                                <option value="CTHM">CTHM</option>
+                                <option value="CTE">CTE</option>
+                                <option value="BASIC EDUCATION">BASIC EDUCATION</option>
+                                <option value="SHS">SHS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Teacher</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../assets/js/main.js"></script>
 </body>

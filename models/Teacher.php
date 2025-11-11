@@ -6,8 +6,6 @@ class Teacher {
     public $id;
     public $name;
     public $department;
-    public $email;
-    public $phone;
     public $status;
     public $created_at;
 
@@ -17,7 +15,9 @@ class Teacher {
 
     // Get all teachers by department
     public function getByDepartment($department) {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE department = :department ORDER BY name";
+        $query = "SELECT * FROM " . $this->table_name . " 
+                  WHERE department = :department 
+                  ORDER BY name";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':department', $department);
         $stmt->execute();
@@ -26,7 +26,10 @@ class Teacher {
 
     // Get active teachers by department
     public function getActiveByDepartment($department) {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE department = :department AND status = 'active' ORDER BY name";
+        $query = "SELECT * FROM " . $this->table_name . " 
+                  WHERE department = :department 
+                  AND status = 'active' 
+                  ORDER BY name";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':department', $department);
         $stmt->execute();
@@ -46,45 +49,41 @@ class Teacher {
         return false;
     }
 
-    // Create new teacher
-    public function create($data) {
+    // ✅ Create new teacher (with duplicate check)
+    public function create($name, $department) {
+        // Prevent duplicates
+        if ($this->existsInDepartment($name, $department)) {
+            return false;
+        }
+
         $query = "INSERT INTO " . $this->table_name . " 
-                 (name, department, email, phone, status, created_at) 
-                 VALUES (:name, :department, :email, :phone, 'active', NOW())";
+                 (name, department, status, created_at) 
+                 VALUES (:name, :department, 'active', NOW())";
         
         $stmt = $this->conn->prepare($query);
-        
-        $stmt->bindParam(':name', $data['name']);
-        $stmt->bindParam(':department', $data['department']);
-        $stmt->bindParam(':email', $data['email']);
-        $stmt->bindParam(':phone', $data['phone']);
+        $stmt->bindParam(':name', $name);
+        $stmt->bindParam(':department', $department);
         
         return $stmt->execute();
     }
 
-    // Update teacher
+    // Update teacher (name only)
     public function update($id, $data) {
         $query = "UPDATE " . $this->table_name . " 
-                 SET name = :name, email = :email, phone = :phone, updated_at = NOW() 
+                 SET name = :name, updated_at = NOW() 
                  WHERE id = :id";
         
         $stmt = $this->conn->prepare($query);
-        
         $stmt->bindParam(':id', $id);
         $stmt->bindParam(':name', $data['name']);
-        $stmt->bindParam(':email', $data['email']);
-        $stmt->bindParam(':phone', $data['phone']);
         
         return $stmt->execute();
     }
 
     // Toggle teacher status (active/inactive)
     public function toggleStatus($id) {
-        // Get current status
         $current_teacher = $this->getById($id);
-        if (!$current_teacher) {
-            return false;
-        }
+        if (!$current_teacher) return false;
         
         $new_status = $current_teacher['status'] == 'active' ? 'inactive' : 'active';
         
@@ -101,14 +100,16 @@ class Teacher {
 
     // Get total number of teachers
     public function getTotalTeachers() {
-        $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " WHERE status = 'active'";
+        $query = "SELECT COUNT(*) as total 
+                  FROM " . $this->table_name . " 
+                  WHERE status = 'active'";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result['total'] ?? 0;
     }
 
-    // Get all teachers
+    // Get all teachers (optional filter by status)
     public function getAllTeachers($status = null) {
         $query = "SELECT * FROM " . $this->table_name;
         if (!is_null($status)) {
@@ -123,7 +124,7 @@ class Teacher {
         return $stmt;
     }
 
-    // Update teacher status
+    // Update teacher status directly
     public function updateStatus($id, $status) {
         $query = "UPDATE " . $this->table_name . " 
                  SET status = :status, updated_at = NOW() 
@@ -141,7 +142,6 @@ class Teacher {
         $query = "SELECT id FROM " . $this->table_name . " 
                  WHERE name = :name AND department = :department 
                  LIMIT 1";
-        
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':name', $name);
         $stmt->bindParam(':department', $department);
@@ -153,24 +153,11 @@ class Teacher {
     // Validate teacher data
     public function validate($data) {
         $errors = [];
-
-        // Name validation
         if (empty(trim($data['name']))) {
             $errors[] = "Teacher name is required.";
         } elseif (strlen(trim($data['name'])) < 2) {
             $errors[] = "Teacher name must be at least 2 characters long.";
         }
-
-        // Email validation (optional)
-        if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $errors[] = "Invalid email format.";
-        }
-
-        // Phone validation (optional)
-        if (!empty($data['phone']) && !preg_match('/^[\d\s\-\+\(\)]{10,}$/', $data['phone'])) {
-            $errors[] = "Invalid phone number format.";
-        }
-
         return $errors;
     }
 
@@ -187,13 +174,11 @@ class Teacher {
                  WHERE department = :department 
                  AND name LIKE :name 
                  ORDER BY name";
-        
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':department', $department);
         $search_term = '%' . $name . '%';
         $stmt->bindParam(':name', $search_term);
         $stmt->execute();
-        
         return $stmt;
     }
 
@@ -205,24 +190,23 @@ class Teacher {
                  WHERE t.department = :department 
                  GROUP BY t.id 
                  ORDER BY t.name";
-        
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':department', $department);
         $stmt->execute();
-        
         return $stmt;
     }
-    // Add this method to get teacher count by department
-public function getCountByDepartment($department) {
-    $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " 
-              WHERE department = :department AND status = 'active'";
-    
-    $stmt = $this->conn->prepare($query);
-    $stmt->bindParam(':department', $department);
-    $stmt->execute();
-    
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    return $result['count'] ?? 0;
-}
+
+    // Get teacher count by department
+    public function getCountByDepartment($department) {
+        $query = "SELECT COUNT(*) as count 
+                 FROM " . $this->table_name . " 
+                 WHERE department = :department 
+                 AND status = 'active'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':department', $department);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['count'] ?? 0;
+    }
 }
 ?>

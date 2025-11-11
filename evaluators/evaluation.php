@@ -17,15 +17,6 @@ $db = $database->getConnection();
 $teacher = new Teacher($db);
 $evaluation = new Evaluation($db);
 
-// Compute default academic year dynamically (e.g., 2025-2026 in late 2025)
-$currentYear = (int)date('Y');
-$currentMonth = (int)date('n');
-if ($currentMonth >= 7) {
-    $defaultAcademicYear = $currentYear . '-' . ($currentYear + 1);
-} else {
-    $defaultAcademicYear = ($currentYear - 1) . '-' . $currentYear;
-}
-
 // Presidents and Vice Presidents can evaluate across all departments
 if(in_array($_SESSION['role'], ['president', 'vice_president'])) {
     $teachers = $teacher->getAllTeachers('active');
@@ -33,39 +24,14 @@ if(in_array($_SESSION['role'], ['president', 'vice_president'])) {
     $teachers = $teacher->getActiveByDepartment($_SESSION['department']);
 }
 
-// If teacher_id is provided via GET, load that teacher to preselect and open the form
-$preselect_teacher = null;
-if(isset($_GET['teacher_id']) && is_numeric($_GET['teacher_id'])) {
-    $preselect_teacher = $teacher->getById((int)$_GET['teacher_id']);
-    // Server-side guard: ensure the current user is authorized to evaluate this teacher
-    if ($preselect_teacher) {
-        // Presidents and Vice Presidents can evaluate all departments
-        if (!in_array($_SESSION['role'], ['president', 'vice_president'])) {
-            $teacher_dept = $preselect_teacher['department'] ?? null;
-            $user_dept = $_SESSION['department'] ?? null;
-            if ($teacher_dept !== $user_dept) {
-                // Not authorized to preselect this teacher; clear preselect and show a message
-                $_SESSION['error'] = "You are not authorized to evaluate that teacher.";
-                $preselect_teacher = null;
-            }
-        }
-    }
-}
-
-// Handle form submission with debug logging
+// Handle form submission
 if($_POST && isset($_POST['submit_evaluation'])) {
-    error_log('[DEBUG] evaluation.php: Form submitted. POST data: ' . print_r($_POST, true));
     $evalController = new EvaluationController($db);
     $result = $evalController->submitEvaluation($_POST, $_SESSION['user_id']);
-    error_log('[DEBUG] evaluation.php: Result from submitEvaluation: ' . print_r($result, true));
 
     if($result['success']) {
         $_SESSION['success'] = "Evaluation submitted successfully!";
-        // Redirect to reports with the teacher filter, academic year, and semester so the new record is visible
-        $ay = urlencode($_POST['academic_year'] ?? '');
-        $tid = urlencode($_POST['teacher_id'] ?? '');
-        $sem = urlencode($_POST['semester'] ?? '');
-        header("Location: reports.php?teacher_id={$tid}&academic_year={$ay}&semester={$sem}");
+        header("Location: dashboard.php");
         exit();
     } else {
         $_SESSION['error'] = "Error submitting evaluation: " . $result['message'];
@@ -139,9 +105,9 @@ if($_POST && isset($_POST['submit_evaluation'])) {
             </div>
             
             <!-- Evaluation Form -->
-            <div id="evaluationFormContainer" class="">
+            <div id="evaluationFormContainer" class="d-none">
                 <form id="evaluationForm" method="POST">
-                    <input type="hidden" name="teacher_id" id="selected_teacher_id" value="1">
+                    <input type="hidden" name="teacher_id" id="selected_teacher_id">
                     
                     <div class="card">
                         <div class="card-header">
@@ -158,7 +124,7 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Academic Year:</label>
-                                        <input type="text" class="form-control" id="academicYear" name="academic_year" value="<?php echo htmlspecialchars($defaultAcademicYear); ?>" required>
+                                        <input type="text" class="form-control" id="academicYear" name="academic_year" value="2023-2024" required>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Semester:</label>
@@ -581,22 +547,22 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                                 <div class="row mt-4">
                                     <div class="col-md-6">
                                         <label class="form-label">STRENGTHS</label>
-                                        <textarea class="form-control" id="strengths" name="strengths" rows="3" placeholder=""></textarea>
+                                        <textarea class="form-control" id="strengths" name="strengths" rows="3" placeholder="List the teacher's strengths observed during the evaluation"></textarea>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">AREAS FOR IMPROVEMENT</label>
-                                        <textarea class="form-control" id="improvementAreas" name="improvement_areas" rows="3" placeholder=""></textarea>
+                                        <textarea class="form-control" id="improvementAreas" name="improvement_areas" rows="3" placeholder="List areas where the teacher can improve"></textarea>
                                     </div>
                                 </div>
                                 
                                 <div class="row mt-3">
                                     <div class="col-md-6">
                                         <label class="form-label">RECOMMENDATIONS</label>
-                                        <textarea class="form-control" id="recommendations" name="recommendations" rows="3" placeholder=""></textarea>
+                                        <textarea class="form-control" id="recommendations" name="recommendations" rows="3" placeholder="Provide specific recommendations for improvement"></textarea>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">AGREEMENT</label>
-                                        <textarea class="form-control" id="agreement" name="agreement" rows="3" placeholder=""></textarea>
+                                        <textarea class="form-control" id="agreement" name="agreement" rows="3" placeholder="State agreement or additional notes"></textarea>
                                     </div>
                                 </div>
                                 
@@ -1015,12 +981,17 @@ if($_POST && isset($_POST['submit_evaluation'])) {
 
         // Form submission handler
         document.getElementById('evaluationForm').addEventListener('submit', function(e) {
-            // TEMP: Disable validation for debugging
-            console.log('DEBUG: Forcing form submit, skipping validation.');
+            if (!validateForm()) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Show loading state
             const submitBtn = document.querySelector('button[name="submit_evaluation"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
             submitBtn.disabled = true;
+            
             // Allow form to submit normally
             return true;
         });
@@ -1033,6 +1004,7 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                 input.addEventListener('change', function() {
                     clearTimeout(autoSaveTimeout);
                     autoSaveTimeout = setTimeout(() => {
+                        if (validateForm(true)) {
                             console.log('Auto-saving draft...');
                             // In real implementation, call saveEvaluationDraft() or make AJAX call
                         }
@@ -1084,34 +1056,6 @@ if($_POST && isset($_POST['submit_evaluation'])) {
         document.addEventListener('DOMContentLoaded', function() {
             initializeTeacherSelection();
             setupTeacherSearch();
-
-            <?php if(isset($preselect_teacher) && $preselect_teacher): ?>
-            // Preselect teacher passed from server and open the evaluation form
-            (function() {
-                var teacher = <?php echo json_encode($preselect_teacher); ?>;
-                // Try to find the teacher item in the list and trigger click
-                var teacherItem = document.querySelector('.teacher-item[data-teacher-id="' + teacher.id + '"]');
-                if (teacherItem) {
-                    teacherItem.click();
-                } else {
-                    // If not found in the list (e.g., different query), populate form fields directly
-                    var selectionCard = document.getElementById('teacherSelection');
-                    var formContainer = document.getElementById('evaluationFormContainer');
-                    if (selectionCard && formContainer) {
-                        selectionCard.classList.add('d-none');
-                        formContainer.classList.remove('d-none');
-                    }
-                    var selectedInput = document.getElementById('selected_teacher_id');
-                    if (selectedInput) selectedInput.value = teacher.id;
-                    var facultyInput = document.getElementById('facultyName');
-                    if (facultyInput) facultyInput.value = teacher.name;
-                    var deptInput = document.getElementById('department');
-                    if (deptInput) deptInput.value = teacher.department;
-                    // Initialize form behaviors
-                    initializeEvaluationForm();
-                }
-            })();
-            <?php endif; ?>
         });
     </script>
 </body>

@@ -51,7 +51,7 @@ if ($role === 'president') {
     <div class="main-content">
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3>Leaders Dashboard</h3>
+                <h3>Dashboard</h3>
                 <span>Welcome, <?php echo htmlspecialchars($_SESSION['name']); ?> (<?php echo ucfirst(str_replace('_',' ',$_SESSION['role'])); ?>)</span>
             </div>
 

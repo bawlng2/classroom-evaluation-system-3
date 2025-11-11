@@ -1,7 +1,6 @@
 <?php
 $departments = [
     'CTE' => 'College of Teacher Education',
-    
     'CAS' => 'College of Arts and Sciences',
     'CCJE' => 'College of Criminal Justice Education',
     'CBM' => 'College of Business Management',
@@ -11,8 +10,9 @@ $departments = [
     'SHS' => 'Senior High School (SHS)'
 ];
 $selected_department = isset($_GET['department']) ? $_GET['department'] : '';
+
 require_once '../auth/session-check.php';
-if($_SESSION['role'] != 'edp') {
+if ($_SESSION['role'] != 'edp') {
     header("Location: ../login.php");
     exit();
 }
@@ -24,23 +24,40 @@ $database = new Database();
 $db = $database->getConnection();
 $teacher = new Teacher($db);
 
-// Handle teacher deactivation
-if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
-    if($_POST['action'] == 'deactivate') {
-        if($teacher->updateStatus($_POST['teacher_id'], 'inactive')) {
+// ✅ Handle teacher creation, activation, deactivation
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] == 'create') {
+        $name = trim($_POST['name']);
+        $department = $_POST['department'];
+
+        if (!empty($name) && !empty($department)) {
+            if ($teacher->create($name, $department)) {
+                $_SESSION['success'] = "Teacher added successfully.";
+            } else {
+                $_SESSION['error'] = "Failed to add teacher.";
+            }
+        } else {
+            $_SESSION['error'] = "Please fill out all required fields.";
+        }
+        header("Location: teachers.php");
+        exit();
+    } elseif ($_POST['action'] == 'deactivate') {
+        if ($teacher->updateStatus($_POST['teacher_id'], 'inactive')) {
             $_SESSION['success'] = "Teacher deactivated successfully.";
         } else {
             $_SESSION['error'] = "Failed to deactivate teacher.";
         }
-    } elseif($_POST['action'] == 'activate') {
-        if($teacher->updateStatus($_POST['teacher_id'], 'active')) {
+        header("Location: teachers.php");
+        exit();
+    } elseif ($_POST['action'] == 'activate') {
+        if ($teacher->updateStatus($_POST['teacher_id'], 'active')) {
             $_SESSION['success'] = "Teacher activated successfully.";
         } else {
             $_SESSION['error'] = "Failed to activate teacher.";
         }
+        header("Location: teachers.php");
+        exit();
     }
-    header("Location: teachers.php");
-    exit();
 }
 
 // Get only active teachers
@@ -65,6 +82,7 @@ $teachers = $selected_department ? $teacher->getActiveByDepartment($selected_dep
                     <i class="fas fa-plus me-2"></i>Add
                 </button>
             </div>
+
     <!-- Add Teacher Modal -->
     <div class="modal fade" id="addTeacherModal" tabindex="-1">
         <div class="modal-dialog">
@@ -88,14 +106,6 @@ $teachers = $selected_department ? $teacher->getActiveByDepartment($selected_dep
                                     <option value="<?php echo $key; ?>"><?php echo $label; ?></option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone</label>
-                            <input type="text" class="form-control" name="phone" required>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -132,6 +142,7 @@ $teachers = $selected_department ? $teacher->getActiveByDepartment($selected_dep
                     <?php endforeach; ?>
                 </select>
             </form>
+
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
@@ -195,7 +206,6 @@ $teachers = $selected_department ? $teacher->getActiveByDepartment($selected_dep
     document.getElementById('teacherSearch').addEventListener('keyup', function() {
         let searchText = this.value.toLowerCase();
         let tableRows = document.querySelectorAll('tbody tr');
-        
         tableRows.forEach(row => {
             let text = row.textContent.toLowerCase();
             row.style.display = text.includes(searchText) ? '' : 'none';

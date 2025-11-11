@@ -14,50 +14,37 @@ $db = $database->getConnection();
 $teacher = new Teacher($db);
 
 // Handle form actions
-// Handle form actions
 if($_POST) {
     if(isset($_POST['add_teacher'])) {
-        // Validate data
         $validation_errors = $teacher->validate($_POST);
         
         if (empty($validation_errors)) {
-            // Check if teacher already exists
             if ($teacher->existsInDepartment($_POST['name'], $_SESSION['department'])) {
                 $_SESSION['error'] = "A teacher with this name already exists in the department.";
             } else {
                 $result = $teacher->create([
                     'name' => $_POST['name'],
-                    'department' => $_SESSION['department'],
-                    'email' => $_POST['email'],
-                    'phone' => $_POST['phone']
+                    'department' => $_SESSION['department']
                 ]);
                 
-                if($result) {
-                    $_SESSION['success'] = "Teacher added successfully!";
-                } else {
-                    $_SESSION['error'] = "Failed to add teacher. Please try again.";
-                }
+                $_SESSION[$result ? 'success' : 'error'] = $result 
+                    ? "Teacher added successfully!" 
+                    : "Failed to add teacher. Please try again.";
             }
         } else {
             $_SESSION['error'] = implode("<br>", $validation_errors);
         }
     }
     elseif(isset($_POST['update_teacher'])) {
-        // Validate data
         $validation_errors = $teacher->validate($_POST);
         
         if (empty($validation_errors)) {
             $result = $teacher->update($_POST['teacher_id'], [
-                'name' => $_POST['name'],
-                'email' => $_POST['email'],
-                'phone' => $_POST['phone']
+                'name' => $_POST['name']
             ]);
-            
-            if($result) {
-                $_SESSION['success'] = "Teacher updated successfully!";
-            } else {
-                $_SESSION['error'] = "Failed to update teacher. Please try again.";
-            }
+            $_SESSION[$result ? 'success' : 'error'] = $result 
+                ? "Teacher updated successfully!" 
+                : "Failed to update teacher. Please try again.";
         } else {
             $_SESSION['error'] = implode("<br>", $validation_errors);
         }
@@ -79,7 +66,6 @@ if($_POST) {
     exit();
 }
 
-// Get teachers for current department
 $teachers = $teacher->getByDepartment($_SESSION['department']);
 ?>
 <!DOCTYPE html>
@@ -129,13 +115,10 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                                 <tr>
                                     <th>#</th>
                                     <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <!-- In the table body section of teachers.php -->
                             <tbody>
                                 <?php if($teachers->rowCount() > 0): ?>
                                 <?php $counter = 1; ?>
@@ -143,8 +126,6 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                                 <tr>
                                     <td><?php echo $counter++; ?></td>
                                     <td><?php echo htmlspecialchars($teacher_row['name']); ?></td>
-                                    <td><?php echo htmlspecialchars($teacher_row['email'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars($teacher_row['phone'] ?? 'N/A'); ?></td>
                                     <td>
                                         <span class="badge bg-<?php echo $teacher_row['status'] == 'active' ? 'success' : 'secondary'; ?>">
                                             <?php echo ucfirst($teacher_row['status']); ?>
@@ -153,9 +134,7 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary edit-teacher" 
                                                 data-teacher-id="<?php echo $teacher_row['id']; ?>"
-                                                data-name="<?php echo htmlspecialchars($teacher_row['name']); ?>"
-                                                data-email="<?php echo htmlspecialchars($teacher_row['email']); ?>"
-                                                data-phone="<?php echo htmlspecialchars($teacher_row['phone']); ?>">
+                                                data-name="<?php echo htmlspecialchars($teacher_row['name']); ?>">
                                             <i class="fas fa-edit"></i> Edit
                                         </button>
                                         
@@ -164,13 +143,13 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                                             <?php if($teacher_row['status'] == 'active'): ?>
                                             <button type="submit" name="toggle_status" 
                                                     class="btn btn-sm btn-warning"
-                                                    onclick="return confirm('Are you sure you want to deactivate this teacher? They will not be available for new evaluations.')">
+                                                    onclick="return confirm('Are you sure you want to deactivate this teacher?')">
                                                 <i class="fas fa-pause"></i> Deactivate
                                             </button>
                                             <?php else: ?>
                                             <button type="submit" name="toggle_status" 
                                                     class="btn btn-sm btn-success"
-                                                    onclick="return confirm('Are you sure you want to activate this teacher? They will be available for new evaluations.')">
+                                                    onclick="return confirm('Are you sure you want to activate this teacher?')">
                                                 <i class="fas fa-play"></i> Activate
                                             </button>
                                             <?php endif; ?>
@@ -180,10 +159,9 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                                 <?php endwhile; ?>
                                 <?php else: ?>
                                 <tr>
-                                    <td colspan="6" class="text-center py-4">
+                                    <td colspan="4" class="text-center py-4">
                                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
                                         <h5>No Teachers Found</h5>
-                                        <p class="text-muted">Add your first teacher to get started with evaluations.</p>
                                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
                                             <i class="fas fa-plus me-2"></i>Add First Teacher
                                         </button>
@@ -211,14 +189,6 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                         <div class="mb-3">
                             <label for="name" class="form-label">Full Name *</label>
                             <input type="text" class="form-control" id="name" name="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="email" name="email">
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <input type="text" class="form-control" id="phone" name="phone">
                         </div>
                         <div class="alert alert-info">
                             <small>
@@ -251,14 +221,6 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                             <label for="edit_name" class="form-label">Full Name *</label>
                             <input type="text" class="form-control" id="edit_name" name="name" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="edit_email" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="edit_email" name="email">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_phone" class="form-label">Phone Number</label>
-                            <input type="text" class="form-control" id="edit_phone" name="phone">
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -277,13 +239,9 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
             button.addEventListener('click', function() {
                 const teacherId = this.getAttribute('data-teacher-id');
                 const name = this.getAttribute('data-name');
-                const email = this.getAttribute('data-email');
-                const phone = this.getAttribute('data-phone');
                 
                 document.getElementById('edit_teacher_id').value = teacherId;
                 document.getElementById('edit_name').value = name;
-                document.getElementById('edit_email').value = email;
-                document.getElementById('edit_phone').value = phone;
                 
                 const editModal = new bootstrap.Modal(document.getElementById('editTeacherModal'));
                 editModal.show();
@@ -293,8 +251,6 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
         // Clear add modal when closed
         document.getElementById('addTeacherModal').addEventListener('hidden.bs.modal', function () {
             document.getElementById('name').value = '';
-            document.getElementById('email').value = '';
-            document.getElementById('phone').value = '';
         });
     </script>
 </body>

@@ -237,14 +237,12 @@ foreach ($roles as $role) {
                                 <?php
                                 $departments = [
                                     'CTE' => 'College of Teacher Education',
-                                    'BSED' => 'Bachelor of Secondary Education',
                                     'CAS' => 'College of Arts and Sciences',
                                     'CCJE' => 'College of Criminal Justice Education',
                                     'CBM' => 'College of Business Management',
                                     'CCIS' => 'College of Computing and Information Sciences',
                                     'CTHM' => 'College of Tourism and Hospitality Management',
-                                    'ELEM' => 'Elementary',
-                                    'JHS' => 'Junior High School',
+                                    'BASIC ED' => 'BASIC ED (Nursery, Kindergarten, Elementary, Junior High School)',
                                     'SHS' => 'Senior High School (SHS)'
                                 ];
                                 foreach($departments as $key => $value):
