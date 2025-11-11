@@ -31,7 +31,7 @@ if($_POST && isset($_POST['submit_evaluation'])) {
 
     if($result['success']) {
         $_SESSION['success'] = "Evaluation submitted successfully!";
-        header("Location: dashboard.php");
+        header("Location: reports.php");
         exit();
     } else {
         $_SESSION['error'] = "Error submitting evaluation: " . $result['message'];
@@ -77,7 +77,7 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                     <?php if($teachers->rowCount() > 0): ?>
                     <div class="list-group" id="teacherList">
                         <?php while($teacher_row = $teachers->fetch(PDO::FETCH_ASSOC)): ?>
-                        <div class="list-group-item teacher-item" data-teacher-id="<?php echo $teacher_row['id']; ?>">
+                        <div class="list-group-item teacher-item" data-teacher-id="<?php echo $teacher_row['id']; ?>" data-teacher-name="<?php echo htmlspecialchars($teacher_row['name']); ?>" data-teacher-department="<?php echo htmlspecialchars($teacher_row['department']); ?>">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="mb-1"><?php echo htmlspecialchars($teacher_row['name']); ?></h6>
@@ -120,11 +120,11 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Name of Faculty:</label>
-                                        <input type="text" class="form-control" id="facultyName" name="faculty_name">
+                                        <input type="text" class="form-control" id="facultyName" name="faculty_name" required>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Academic Year:</label>
-                                        <input type="text" class="form-control" id="academicYear" name="academic_year" value="2023-2024" required>
+                                        <input type="text" class="form-control" id="academicYear" name="academic_year" value="2025-2026" required>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Semester:</label>
@@ -143,7 +143,7 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Department:</label>
-                                        <input type="text" class="form-control" id="department" name="department">
+                                        <input type="text" class="form-control" id="department" name="department" required>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Subject/Time of Observation:</label>
@@ -541,8 +541,6 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                                     </div>
                                 </div>
                                 
-
-                                
                                 <!-- Strengths and Areas for Improvement -->
                                 <div class="row mt-4">
                                     <div class="col-md-6">
@@ -671,7 +669,6 @@ if($_POST && isset($_POST['submit_evaluation'])) {
             const urlParams = new URLSearchParams(window.location.search);
             const preselectTeacher = urlParams.get('teacher_id');
             if (preselectTeacher) {
-                // If the teacher list is present, start evaluation immediately
                 startEvaluation(preselectTeacher);
             }
         });
@@ -681,7 +678,9 @@ if($_POST && isset($_POST['submit_evaluation'])) {
             document.querySelectorAll('.teacher-item').forEach(item => {
                 item.addEventListener('click', function() {
                     const teacherId = this.getAttribute('data-teacher-id');
-                    startEvaluation(teacherId);
+                    const teacherName = this.getAttribute('data-teacher-name');
+                    const teacherDept = this.getAttribute('data-teacher-department');
+                    startEvaluation(teacherId, teacherName, teacherDept);
                 });
             });
 
@@ -708,25 +707,54 @@ if($_POST && isset($_POST['submit_evaluation'])) {
             document.getElementById('downloadPDF').addEventListener('click', function() {
                 exportToPDF();
             });
+
+            // Form submission
+            document.getElementById('evaluationForm').addEventListener('submit', function(e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Show loading state
+                const submitBtn = document.querySelector('button[name="submit_evaluation"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+                submitBtn.disabled = true;
+                
+                // Allow form to submit normally
+                return true;
+            });
         }
 
-        function startEvaluation(teacherId) {
+        function startEvaluation(teacherId, teacherName = '', teacherDept = '') {
             document.getElementById('teacherSelection').classList.add('d-none');
             document.getElementById('evaluationFormContainer').classList.remove('d-none');
             document.getElementById('selected_teacher_id').value = teacherId;
+            
+            // Auto-fill teacher information if available
+            if (teacherName) {
+                document.getElementById('facultyName').value = teacherName;
+            }
+            if (teacherDept) {
+                document.getElementById('department').value = teacherDept;
+            }
             
             // Set current date
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('observationDate').value = today;
             document.getElementById('raterDate').value = today;
             document.getElementById('facultyDate').value = today;
+            
+            // Set rater signature to current user's name
+            document.getElementById('raterSignature').value = '<?php echo $_SESSION['name'] ?? ''; ?>';
         }
 
         function showTeacherSelection() {
             document.getElementById('teacherSelection').classList.remove('d-none');
             document.getElementById('evaluationFormContainer').classList.add('d-none');
         }
-                function calculateAverages() {
+
+        function calculateAverages() {
             // Communications average
             let commTotal = 0;
             let commCount = 0;
@@ -816,7 +844,48 @@ if($_POST && isset($_POST['submit_evaluation'])) {
             };
         }
 
-
+        function validateForm(isDraft = false) {
+            let isValid = true;
+            const requiredFields = document.querySelectorAll('[required]');
+            const errorFields = [];
+            
+            // Check required fields
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    errorFields.push(field.name || field.id);
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            // Check if at least some ratings are provided (for draft, require at least one category)
+            if (!isDraft) {
+                const communicationsRatings = document.querySelectorAll('input[name^="communications"]:checked');
+                const managementRatings = document.querySelectorAll('input[name^="management"]:checked');
+                const assessmentRatings = document.querySelectorAll('input[name^="assessment"]:checked');
+                
+                if (communicationsRatings.length === 0 && managementRatings.length === 0 && assessmentRatings.length === 0) {
+                    alert('Please provide ratings for at least one evaluation category.');
+                    isValid = false;
+                }
+            }
+            
+            if (!isValid && !isDraft) {
+                alert('Please complete all required fields before submitting.');
+                // Scroll to first error
+                if (errorFields.length > 0) {
+                    const firstError = document.querySelector('.is-invalid');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstError.focus();
+                    }
+                }
+            }
+            
+            return isValid;
+        }
 
         function saveEvaluationDraft() {
             if (validateForm(true)) {
@@ -858,166 +927,12 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                 
                 // Simulate PDF generation
                 setTimeout(() => {
-                    alert(`PDF report for "${teacherName}" has been generated!\n\nIn a real implementation, this would:\n• Create a formatted PDF document\n• Include all evaluation data and ratings\n• Add AI recommendations\n• Download automatically`);
+                    alert(`PDF report for "${teacherName}" has been generated!\n\nIn a real implementation, this would download automatically.`);
                     
                     pdfBtn.innerHTML = originalText;
                     pdfBtn.disabled = false;
-                    
-                    // In real implementation, you would trigger actual PDF download
-                    // window.open('../controllers/export.php?type=pdf&evaluation_data=' + encodeURIComponent(JSON.stringify(getFormData())), '_blank');
                 }, 1500);
             }
-        }
-
-        function validateForm(isDraft = false) {
-            let isValid = true;
-            const requiredFields = document.querySelectorAll('[required]');
-            const errorFields = [];
-            
-            // Check required fields
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    field.classList.add('is-invalid');
-                    errorFields.push(field.name || field.id);
-                    isValid = false;
-                } else {
-                    field.classList.remove('is-invalid');
-                }
-            });
-            
-            // Check if at least some ratings are provided (for draft, require at least one category)
-            if (!isDraft) {
-                const communicationsRatings = document.querySelectorAll('input[name^="communications"]:checked');
-                const managementRatings = document.querySelectorAll('input[name^="management"]:checked');
-                const assessmentRatings = document.querySelectorAll('input[name^="assessment"]:checked');
-                
-                if (communicationsRatings.length === 0 && managementRatings.length === 0 && assessmentRatings.length === 0) {
-                    alert('Please provide ratings for at least one evaluation category.');
-                    isValid = false;
-                }
-            }
-            
-            // Check ratings completeness (for submission)
-            if (!isDraft) {
-                const categories = ['communications', 'management', 'assessment'];
-                const expectedCounts = { communications: 5, management: 12, assessment: 6 };
-                
-                for (const category of categories) {
-                    const ratings = document.querySelectorAll(`input[name^="${category}"]:checked`);
-                    if (ratings.length > 0 && ratings.length < expectedCounts[category]) {
-                        if (confirm(`You have only completed ${ratings.length} out of ${expectedCounts[category]} items in ${category.replace('communications', 'Communications').replace('management', 'Management').replace('assessment', 'Assessment')}. Continue anyway?`)) {
-                            // User chose to continue with incomplete category
-                        } else {
-                            isValid = false;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            if (!isValid && !isDraft) {
-                alert('Please complete all required fields before submitting.');
-                // Scroll to first error
-                if (errorFields.length > 0) {
-                    const firstError = document.querySelector('.is-invalid');
-                    if (firstError) {
-                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        firstError.focus();
-                    }
-                }
-            }
-            
-            return isValid;
-        }
-
-        function getFormData() {
-            const formData = {
-                teacher_id: document.getElementById('selected_teacher_id').value,
-                faculty_name: document.getElementById('facultyName').value,
-                academic_year: document.getElementById('academicYear').value,
-                semester: document.querySelector('input[name="semester"]:checked')?.value,
-                department: document.getElementById('department').value,
-                subject_observed: document.getElementById('subjectTime').value,
-                observation_date: document.getElementById('observationDate').value,
-                observation_type: document.querySelector('input[name="observation_type"]:checked')?.value,
-                seat_plan: document.getElementById('seatPlan').checked ? 1 : 0,
-                course_syllabi: document.getElementById('courseSyllabi').checked ? 1 : 0,
-                others_requirements: document.getElementById('others').checked ? 1 : 0,
-                others_specify: document.getElementById('othersSpecify').value,
-                strengths: document.getElementById('strengths').value,
-                improvement_areas: document.getElementById('improvementAreas').value,
-                recommendations: document.getElementById('recommendations').value,
-                rater_signature: document.getElementById('raterSignature').value,
-                rater_date: document.getElementById('raterDate').value,
-                faculty_signature: document.getElementById('facultySignature').value,
-                faculty_date: document.getElementById('facultyDate').value,
-                ratings: {}
-            };
-            
-            // Collect all ratings
-            ['communications', 'management', 'assessment'].forEach(category => {
-                formData.ratings[category] = {};
-                const count = category === 'communications' ? 5 : category === 'management' ? 12 : 6;
-                
-                for (let i = 0; i < count; i++) {
-                    const rating = document.querySelector(`input[name="${category}${i}"]:checked`);
-                    const comment = document.querySelector(`input[name="${category}_comment${i}"]`);
-                    
-                    if (rating) {
-                        formData.ratings[category][i] = {
-                            rating: rating.value,
-                            comment: comment ? comment.value : ''
-                        };
-                    }
-                }
-            });
-            
-            // Add calculated averages
-            const averages = calculateAverages();
-            formData.averages = averages;
-            
-            return formData;
-        }
-
-        // Form submission handler
-        document.getElementById('evaluationForm').addEventListener('submit', function(e) {
-            if (!validateForm()) {
-                e.preventDefault();
-                return false;
-            }
-            
-            // Show loading state
-            const submitBtn = document.querySelector('button[name="submit_evaluation"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
-            submitBtn.disabled = true;
-            
-            // Allow form to submit normally
-            return true;
-        });
-
-        // Auto-save functionality (optional)
-        let autoSaveTimeout;
-        function setupAutoSave() {
-            const inputs = document.querySelectorAll('input, textarea, select');
-            inputs.forEach(input => {
-                input.addEventListener('change', function() {
-                    clearTimeout(autoSaveTimeout);
-                    autoSaveTimeout = setTimeout(() => {
-                        if (validateForm(true)) {
-                            console.log('Auto-saving draft...');
-                            // In real implementation, call saveEvaluationDraft() or make AJAX call
-                        }
-                    }, 3000); // Save 3 seconds after last change
-                });
-            });
-        }
-
-        // Initialize auto-save when form is shown
-        function initializeEvaluationForm() {
-            setupAutoSave();
-            calculateAverages();
-            generateAIRecommendations();
         }
 
         // Enhanced teacher selection with search
