@@ -69,10 +69,10 @@ $stats = $evaluation->getAdminStats($_SESSION['user_id']);
                         </div>
                         <div class="card-body">
                             <a href="evaluation.php" class="btn btn-primary me-2">
-                                <i class="fas fa-plus me-2"></i>New Evaluation
+                                <i class="fas fa-plus me-2"></i>Evaluate
                             </a>
                             <a href="teachers.php" class="btn btn-outline-primary me-2">
-                                <i class="fas fa-users me-2"></i>Manage Teachers
+                                <i class="fas fa-users me-2"></i>Teacher List
                             </a>
                             <a href="reports.php" class="btn btn-outline-primary">
                                 <i class="fas fa-chart-bar me-2"></i>View Reports
@@ -115,9 +115,9 @@ $stats = $evaluation->getAdminStats($_SESSION['user_id']);
                                 <?php endwhile; ?>
                             </div>
                             <?php else: ?>
-                            <p class="text-muted text-center py-3">
-                                <i class="fas fa-clipboard-list fa-2x mb-3"></i><br>
-                                No evaluations yet. <a href="evaluation.php">Start your first evaluation</a>.
+                            <p class="text-center text-muted">
+                            <i class="fas fa-clipboard-list fa-2x mb-3"></i><br>
+                                No evaluations available at the moment <a href="evaluation.php"></a>
                             </p>
                             <?php endif; ?>
                         </div>

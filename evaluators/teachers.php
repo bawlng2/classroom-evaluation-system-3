@@ -82,7 +82,7 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
     <div class="main-content">
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3>Manage Teachers - <?php echo $_SESSION['department']; ?></h3>
+                <h3> - <?php echo $_SESSION['department']; ?></h3>
                 
             </div>
 
@@ -114,7 +114,8 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                                     <th>#</th>
                                     <th>Name</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th></th>
+                                    
                                 </tr>
                             </thead>
                             <tbody>
@@ -130,20 +131,12 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary edit-teacher" 
-                                                data-teacher-id="<?php echo $teacher_row['id']; ?>"
-                                                data-name="<?php echo htmlspecialchars($teacher_row['name']); ?>">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
+                                       
                                         
                                         <form method="POST" class="d-inline">
                                             <input type="hidden" name="teacher_id" value="<?php echo $teacher_row['id']; ?>">
                                             <?php if($teacher_row['status'] == 'active'): ?>
-                                            <button type="submit" name="toggle_status" 
-                                                    class="btn btn-sm btn-warning"
-                                                    onclick="return confirm('Are you sure you want to deactivate this teacher?')">
-                                                <i class="fas fa-pause"></i> Deactivate
-                                            </button>
+                                            
                                             <?php else: ?>
                                             <button type="submit" name="toggle_status" 
                                                     class="btn btn-sm btn-success"
