@@ -130,8 +130,8 @@ if(isset($_SESSION['user_id'])) {
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <h2><i class="fas fa-robot me-2"></i>AI Classroom Evaluation</h2>
-                <p>SMCC Quality Management System</p>
+                <h2><i class="fas fa-robot me-2"></i>ADCES</h2>
+                <p>AI-Driven Classroom Evaluation System</p>
             </div>
             
             <?php if(isset($_SESSION['error'])): ?>

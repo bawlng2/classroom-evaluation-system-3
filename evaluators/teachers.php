@@ -83,9 +83,7 @@ $teachers = $teacher->getByDepartment($_SESSION['department']);
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3>Manage Teachers - <?php echo $_SESSION['department']; ?></h3>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
-                    <i class="fas fa-plus me-2"></i>Add New Teacher
-                </button>
+                
             </div>
 
             <?php if(isset($_SESSION['error'])): ?>

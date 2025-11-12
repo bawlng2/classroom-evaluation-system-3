@@ -105,16 +105,14 @@ if ($role === 'president') {
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0">Quick Actions</h5>
+                            <h5 class="mb-0"></h5>
                         </div>
                         <div class="card-body">
                             <div class="d-grid gap-2">
                                 <a href="teachers.php" class="btn btn-primary">
                                     <i class="fas fa-users me-2"></i>View Teachers
                                 </a>
-                                <a href="../evaluators/evaluation.php" class="btn btn-outline-primary">
-                                    <i class="fas fa-clipboard-check me-2"></i>New Evaluation
-                                </a>
+                                
                             </div>
                         </div>
                     </div>
@@ -126,9 +124,13 @@ if ($role === 'president') {
                             <h5 class="mb-0">Evaluators Summary</h5>
                         </div>
                         <div class="card-body">
-                            <ul class="list-group">
+                             <ul class="list-group">
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Vice Presidents
+                                    President
+                                    <span class="badge bg-primary rounded-pill"><?php echo $presidents; ?></span>
+                            <li class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Vice President
                                     <span class="badge bg-primary rounded-pill"><?php echo $vice_presidents; ?></span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
