@@ -190,7 +190,7 @@ $stats = $evaluation->getDepartmentStats($_SESSION['department'], $academic_year
                                         <h5>No Evaluation Data</h5>
                                         <p class="text-muted">No evaluations found for the selected filters.</p>
                                         <a href="evaluation.php" class="btn btn-primary">
-                                            <i class="fas fa-plus me-2"></i>Create Evaluation
+                                            Evaluate Teacher
                                         </a>
                                     </td>
                                 </tr>

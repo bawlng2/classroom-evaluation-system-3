@@ -58,7 +58,6 @@ $stats = $evaluation->getAdminStats($_SESSION['user_id']);
                         <div>Completed Evaluations</div>
                     </div>
                 </div>
-              
             
             <!-- Quick Actions -->
             <div class="row mt-4">
@@ -69,7 +68,7 @@ $stats = $evaluation->getAdminStats($_SESSION['user_id']);
                         </div>
                         <div class="card-body">
                             <a href="evaluation.php" class="btn btn-primary me-2">
-                                <i class="fas fa-plus me-2"></i>Evaluate
+                                Evaluate Teacher
                             </a>
                             <a href="teachers.php" class="btn btn-outline-primary me-2">
                                 <i class="fas fa-users me-2"></i>Teacher List
@@ -117,7 +116,7 @@ $stats = $evaluation->getAdminStats($_SESSION['user_id']);
                             <?php else: ?>
                             <p class="text-center text-muted">
                             <i class="fas fa-clipboard-list fa-2x mb-3"></i><br>
-                                No evaluations available at the moment <a href="evaluation.php"></a>
+                                No evaluation yet.<a href="evaluation.php"></a>
                             </p>
                             <?php endif; ?>
                         </div>

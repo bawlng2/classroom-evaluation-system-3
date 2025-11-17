@@ -125,14 +125,7 @@ if ($role === 'president') {
                         </div>
                         <div class="card-body">
                              <ul class="list-group">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    President
-                                    <span class="badge bg-primary rounded-pill"><?php echo $presidents; ?></span>
-                            <li class="list-group">
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    Vice President
-                                    <span class="badge bg-primary rounded-pill"><?php echo $vice_presidents; ?></span>
-                                </li>
+                                
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     Deans
                                     <span class="badge bg-primary rounded-pill"><?php echo $deans; ?></span>

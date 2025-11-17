@@ -53,11 +53,6 @@ if($_POST && isset($_POST['submit_evaluation'])) {
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h3>Classroom Evaluation</h3>
-                <div>
-                    <button class="btn btn-secondary" id="backToTeachers">
-                        <i class="fas fa-arrow-left me-2"></i> Back to Teachers
-                    </button>
-                </div>
             </div>
 
             <?php if(isset($_SESSION['error'])): ?>
@@ -541,26 +536,34 @@ if($_POST && isset($_POST['submit_evaluation'])) {
                                     </div>
                                 </div>
                                 
+                               <!-- Generate Button with Robot Icon on the Right -->
+                                <div class="text-center mt-4">
+                                    <button class="btn btn-primary" id="generateBtn">
+                                        <i class="fa-solid fa-robot me-2"></i>Generate Ai Recommendation 
+                                    </button>
+                                </div>
+
+                                
                                 <!-- Strengths and Areas for Improvement -->
                                 <div class="row mt-4">
                                     <div class="col-md-6">
                                         <label class="form-label">STRENGTHS</label>
-                                        <textarea class="form-control" id="strengths" name="strengths" rows="3" placeholder="List the teacher's strengths observed during the evaluation"></textarea>
+                                        <textarea class="form-control" id="strengths" name="strengths" rows="3"></textarea>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">AREAS FOR IMPROVEMENT</label>
-                                        <textarea class="form-control" id="improvementAreas" name="improvement_areas" rows="3" placeholder="List areas where the teacher can improve"></textarea>
+                                        <textarea class="form-control" id="improvementAreas" name="improvement_areas" rows="3"></textarea>
                                     </div>
                                 </div>
                                 
                                 <div class="row mt-3">
                                     <div class="col-md-6">
                                         <label class="form-label">RECOMMENDATIONS</label>
-                                        <textarea class="form-control" id="recommendations" name="recommendations" rows="3" placeholder="Provide specific recommendations for improvement"></textarea>
+                                        <textarea class="form-control" id="recommendations" name="recommendations" rows="3"></textarea>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">AGREEMENT</label>
-                                        <textarea class="form-control" id="agreement" name="agreement" rows="3" placeholder="State agreement or additional notes"></textarea>
+                                        <textarea class="form-control" id="agreement" name="agreement" rows="3"></textarea>
                                     </div>
                                 </div>
                                 
